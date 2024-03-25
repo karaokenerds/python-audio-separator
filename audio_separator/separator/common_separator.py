@@ -7,6 +7,7 @@ import numpy as np
 import librosa
 import torch
 from pydub import AudioSegment
+import soundfile as sf  # Using soundfile instead of Pydub
 from audio_separator.separator.uvr_lib_v5 import spec_utils
 
 
@@ -202,15 +203,17 @@ class CommonSeparator:
 
     def write_audio(self, stem_path: str, stem_source):
         """
-        Writes the separated audio source to a file.
+        Writes the separated audio source to a file, using pydub for M4A and soundfile for other formats.
         """
         self.logger.debug(f"Entering write_audio with stem_path: {stem_path}")
 
-        stem_source = spec_utils.normalize(wave=stem_source, max_peak=self.normalization_threshold)
+        stem_source = spec_utils.normalize(
+            wave=stem_source, max_peak=self.normalization_threshold)
 
         # Check if the numpy array is empty or contains very low values
         if np.max(np.abs(stem_source)) < 1e-6:
-            self.logger.warning("Warning: stem_source array is near-silent or empty.")
+            self.logger.warning(
+                "Warning: stem_source array is near-silent or empty.")
             return
 
         # If output_dir is specified, create it and join it with stem_path
@@ -218,44 +221,81 @@ class CommonSeparator:
             os.makedirs(self.output_dir, exist_ok=True)
             stem_path = os.path.join(self.output_dir, stem_path)
 
-        self.logger.debug(f"Audio data shape before processing: {stem_source.shape}")
-        self.logger.debug(f"Data type before conversion: {stem_source.dtype}")
+        """ self.logger.debug(f"Audio data shape before processing: {
+                          stem_source.shape}")
+        self.logger.debug(f"Data type before conversion: {stem_source.dtype}") """
 
         # Ensure the audio data is in the correct format (e.g., int16)
         if stem_source.dtype != np.int16:
             stem_source = (stem_source * 32767).astype(np.int16)
             self.logger.debug("Converted stem_source to int16.")
 
-        # Correctly interleave stereo channels
-        stem_source_interleaved = np.empty((2 * stem_source.shape[0],), dtype=np.int16)
-        stem_source_interleaved[0::2] = stem_source[:, 0]  # Left channel
-        stem_source_interleaved[1::2] = stem_source[:, 1]  # Right channel
+        # Check file format and choose library accordingly
+        file_extension = os.path.splitext(stem_path)[1].lower()
+        if file_extension == '.m4a' or  '.mka':
+            # Determine file format based on the file extension
+            file_format = stem_path.lower().split(".")[-1]
+            # For m4a files, specify mp4 as the container format as the extension doesn't match the format name
+            if file_format == "m4a":
+                file_format = "mp4"
+            elif file_format == "mka":
+                file_format = "matroska"
+            # Correctly interleave stereo channels
+            stem_source_interleaved = np.empty(
+                (2 * stem_source.shape[0],), dtype=np.int16)
+            stem_source_interleaved[0::2] = stem_source[:, 0]  # Left channel
+            stem_source_interleaved[1::2] = stem_source[:, 1]  # Right channel
 
-        self.logger.debug(f"Interleaved audio data shape: {stem_source_interleaved.shape}")
+            self.logger.debug(f"Interleaved audio data shape: {stem_source_interleaved.shape}")
 
-        # Create a pydub AudioSegment
-        try:
-            audio_segment = AudioSegment(stem_source_interleaved.tobytes(), frame_rate=self.sample_rate, sample_width=stem_source.dtype.itemsize, channels=2)
-            self.logger.debug("Created AudioSegment successfully.")
-        except (IOError, ValueError) as e:
-            self.logger.error(f"Specific error creating AudioSegment: {e}")
-            return
+            # Create a pydub AudioSegment
+            try:
+                audio_segment = AudioSegment(stem_source_interleaved.tobytes(
+                ), frame_rate=self.sample_rate, sample_width=stem_source.dtype.itemsize, channels=2)
+                self.logger.debug("Created AudioSegment successfully.")
+            except (IOError, ValueError) as e:
+                self.logger.error(f"Specific error creating AudioSegment: {e}")
+                return
 
-        # Determine file format based on the file extension
-        file_format = stem_path.lower().split(".")[-1]
+            # Save audio as M4A file
+            try:
+                audio_segment.export(stem_path, file_format)
+                self.logger.debug(
+                    f"Exported audio file successfully to {stem_path}")
+            except Exception as e:
+                self.logger.error(f"Error exporting audio file: {e}")
+        else:
+            
+            # Correctly interleave stereo channels if needed
+            if stem_source.shape[1] == 2:
+                # If the audio is already interleaved, ensure it's in the correct order
+                # Check if the array is Fortran contiguous (column-major)
+                if stem_source.flags['F_CONTIGUOUS']:
+                    # Convert to C contiguous (row-major)
+                    stem_source = np.ascontiguousarray(stem_source)
+                # Otherwise, perform interleaving
+                else:
+                    stereo_interleaved = np.empty(
+                        (2 * stem_source.shape[0],), dtype=np.int16)
+                    # Left channel
+                    stereo_interleaved[0::2] = stem_source[:, 0]
+                    # Right channel
+                    stereo_interleaved[1::2] = stem_source[:, 1]
+                    stem_source = stereo_interleaved
 
-        # For m4a files, specify mp4 as the container format as the extension doesn't match the format name
-        if file_format == "m4a":
-            file_format = "mp4"
-        elif file_format == "mka":
-            file_format = "matroska"
+            self.logger.debug(f"Interleaved audio data shape: {stem_source.shape}")
 
-        # Export using the determined format
-        try:
-            audio_segment.export(stem_path, format=file_format)
-            self.logger.debug(f"Exported audio file successfully to {stem_path}")
-        except (IOError, ValueError) as e:
-            self.logger.error(f"Error exporting audio file: {e}")
+            """
+            Write audio using soundfile (for formats other than M4A).
+            """
+            # Save audio using soundfile
+            try:
+                # Specify the subtype to define the sample width
+                sf.write(stem_path, stem_source, self.sample_rate)
+                self.logger.debug(
+                    f"Exported audio file successfully to {stem_path}")
+            except Exception as e:
+                self.logger.error(f"Error exporting audio file: {e}")
 
     def clear_gpu_cache(self):
         """
