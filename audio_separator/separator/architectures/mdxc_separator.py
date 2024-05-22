@@ -180,11 +180,8 @@ class MDXCSeparator(CommonSeparator):
         return source
 
     def overlap_add(self, result, x, weights, start, length):
-        """
-        Adds the overlapping part of the result to the result tensor.
-        """
-        if self.torch_device == "mps":
-            x = x.to(self.torch_device_cpu)
+        x = x.to(result.device)
+        weights = weights.to(result.device)
         result[..., start : start + length] += x[..., :length] * weights[:length]
         return result
 
