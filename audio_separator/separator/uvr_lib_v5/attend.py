@@ -70,8 +70,11 @@ class Attend(nn.Module):
 
         config = self.cuda_config if is_cuda else self.cpu_config
 
-        # pytorch 2.0 flash attn: q, k, v, mask, dropout, softmax_scale
+        # sdpa_flash kernel only supports float16 on sm80+ architecture gpu
+        if is_cuda and q.dtype != torch.float16:
+            config = FlashAttentionConfig(False, True, True)
 
+        # pytorch 2.0 flash attn: q, k, v, mask, dropout, softmax_scale
         with torch.backends.cuda.sdp_kernel(**config._asdict()):
             out = F.scaled_dot_product_attention(q, k, v, dropout_p=self.dropout if self.training else 0.0)
 
