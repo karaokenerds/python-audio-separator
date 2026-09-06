@@ -282,7 +282,22 @@ def test_write_16bit_with_soundfile(temp_dir, mock_separator_config):
     print("✅ Test passed: 16-bit audio written correctly with soundfile")
 
 
+def test_explicit_24bit_output_preserves_model_precision(temp_dir, mock_separator_config):
+    """An explicit high-depth output must bypass pydub's int16 conversion."""
+    mock_separator_config["output_subtype"] = "PCM_24"
+    separator = CommonSeparator(mock_separator_config)
+    separator.input_bit_depth = 16
+    separator.input_subtype = "PCM_16"
+
+    samples = np.array([[0.123456, -0.123456], [0.234567, -0.234567]], dtype=np.float32)
+    separator.write_audio_pydub("explicit-24bit.wav", samples)
+
+    output_path = os.path.join(temp_dir, "explicit-24bit.wav")
+    assert sf.info(output_path).subtype == "PCM_24"
+    decoded, _ = sf.read(output_path, dtype="float32")
+    np.testing.assert_allclose(decoded, samples, atol=1 / 2**23)
+
+
 if __name__ == "__main__":
     # Run tests with pytest
     pytest.main([__file__, "-v", "-s"])
-

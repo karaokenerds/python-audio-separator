@@ -520,7 +520,7 @@ Presets are defined in `audio_separator/ensemble_presets.json` — contributions
 
 ```sh
 usage: audio-separator [-h] [-v] [-d] [-e] [-l] [--log_level LOG_LEVEL] [--list_filter LIST_FILTER] [--list_limit LIST_LIMIT] [--list_format {pretty,json}] [-m MODEL_FILENAME] [--output_format OUTPUT_FORMAT]
-                       [--output_bitrate OUTPUT_BITRATE] [--output_dir OUTPUT_DIR] [--model_file_dir MODEL_FILE_DIR] [--download_model_only] [--invert_spect] [--normalization NORMALIZATION]
+                       [--output_bitrate OUTPUT_BITRATE] [--output_subtype {AUTO,PCM_16,PCM_24,PCM_32,FLOAT}] [--output_dir OUTPUT_DIR] [--model_file_dir MODEL_FILE_DIR] [--download_model_only] [--invert_spect] [--normalization NORMALIZATION]
                        [--amplification AMPLIFICATION] [--single_stem SINGLE_STEM] [--sample_rate SAMPLE_RATE] [--use_soundfile] [--use_autocast | --use_native_fp16] [--use_torch_compile] [--use_directml] [--custom_output_names CUSTOM_OUTPUT_NAMES]
                        [--mdx_segment_size MDX_SEGMENT_SIZE] [--mdx_overlap MDX_OVERLAP] [--mdx_batch_size MDX_BATCH_SIZE] [--mdx_hop_length MDX_HOP_LENGTH] [--mdx_enable_denoise] [--vr_batch_size VR_BATCH_SIZE]
                        [--vr_window_size VR_WINDOW_SIZE] [--vr_aggression VR_AGGRESSION] [--vr_enable_tta] [--vr_high_end_process] [--vr_enable_post_process]
@@ -551,6 +551,7 @@ Separation I/O Params:
   -m MODEL_FILENAME, --model_filename MODEL_FILENAME     Model to use for separation (default: model_bs_roformer_ep_317_sdr_12.9755.yaml). Example: -m 2_HP-UVR.pth
   --output_format OUTPUT_FORMAT                          Output format for separated files, any common format (default: FLAC). Example: --output_format=MP3
   --output_bitrate OUTPUT_BITRATE                        Output bitrate for separated files, any ffmpeg-compatible bitrate (default: None). Example: --output_bitrate=320k
+  --output_subtype {AUTO,PCM_16,PCM_24,PCM_32,FLOAT}     Lossless WAV/FLAC subtype. AUTO follows the input where supported (default: AUTO).
   --output_dir OUTPUT_DIR                                Directory to write output files (default: <current dir>). Example: --output_dir=/app/separated
   --model_file_dir MODEL_FILE_DIR                        Model files directory (default: /tmp/audio-separator-models/). Example: --model_file_dir=/app/models
   --download_model_only                                  Download a single model file only, without performing separation.
@@ -744,6 +745,7 @@ You can also rename specific stems:
 - **`invert_using_spec`:** (Optional) Flag to invert using spectrogram. `Default: False`
 - **`sample_rate`:** (Optional) Set the sample rate of the output audio. `Default: 44100`
 - **`use_soundfile`:** (Optional) Use soundfile for output writing, can solve OOM issues, especially on longer audio.
+- **`output_subtype`:** (Optional) Choose `PCM_16`, `PCM_24`, `PCM_32`, or `FLOAT` for lossless output. `AUTO` preserves the input subtype where the WAV/FLAC container supports it. `PCM_32` and `FLOAT` require WAV.
 - **`use_autocast`:** (Optional) Use PyTorch autocast when the loaded model and device support it. Mutually exclusive with `use_native_fp16=True`. `Default: False`
 - **`use_native_fp16`:** (Optional) Convert a verified model to native float16 inference. Currently supported for MelBand RoFormer and BS-RoFormer on MPS and CUDA. Mutually exclusive with `use_autocast=True`; unsupported combinations warn and continue in float32. `Default: False`
 - **`use_torch_compile`:** (Optional) Compile verified repeated model blocks. This can be combined with float32 or autocast for MelBand RoFormer and BS-RoFormer on CPU, MPS, and CUDA, and with native float16 on MPS and CUDA. A fresh compiler cache can make the first run slower; unsupported combinations warn and continue in eager mode. `Default: False`

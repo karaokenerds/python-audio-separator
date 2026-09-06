@@ -9,7 +9,12 @@ import librosa
 import torch
 from pydub import AudioSegment
 import soundfile as sf
-from audio_separator.separator.audio_io import atomic_output_path, validate_audio_source
+from audio_separator.separator.audio_io import (
+    atomic_output_path,
+    normalize_output_subtype,
+    resolve_output_subtype,
+    validate_audio_source,
+)
 from audio_separator.separator.exceptions import AudioExportError, InvalidAudioDataError
 from audio_separator.separator.uvr_lib_v5 import spec_utils
 from audio_separator.separator.execution_policy import FP32, resolve_execution_policy
@@ -78,6 +83,7 @@ class CommonSeparator:
         self.output_dir = config.get("output_dir")
         self.output_format = config.get("output_format")
         self.output_bitrate = config.get("output_bitrate")
+        self.output_subtype = normalize_output_subtype(config.get("output_subtype", "AUTO"), self.output_format)
 
         # Functional options which are applicable to all architectures and the user may tweak to affect the output
         self.normalization_threshold = config.get("normalization_threshold")
@@ -354,6 +360,17 @@ class CommonSeparator:
         self.logger.debug(f"Audio data shape before processing: {stem_source.shape}")
         self.logger.debug(f"Data type before conversion: {stem_source.dtype}")
 
+        file_format = stem_path.lower().split(".")[-1]
+        output_subtype = resolve_output_subtype(self.output_subtype, self.input_subtype, self.input_bit_depth, file_format)
+
+        # Pydub starts from int16 samples, so higher-depth lossless output must
+        # write the model's floating-point samples directly through soundfile.
+        if file_format in ("wav", "flac") and output_subtype != "PCM_16":
+            with atomic_output_path(stem_path, "soundfile") as temp_path:
+                sf.write(temp_path, stem_source, self.sample_rate, subtype=output_subtype)
+            self.logger.debug(f"Exported audio file successfully to {stem_path} with subtype {output_subtype}")
+            return
+
         # Determine bit depth for output (use input bit depth if available, otherwise default to 16)
         output_bit_depth = self.input_bit_depth if self.input_bit_depth is not None else 16
         self.logger.info(f"Writing output with {output_bit_depth}-bit depth")
@@ -375,9 +392,6 @@ class CommonSeparator:
             self.logger.debug("Created AudioSegment successfully.")
         except Exception as e:
             raise AudioExportError(f"Failed to create audio for {stem_path} with pydub: {e}", path=stem_path, backend="pydub") from e
-
-        # Determine file format based on the file extension
-        file_format = stem_path.lower().split(".")[-1]
 
         # For m4a files, specify mp4 as the container format as the extension doesn't match the format name
         if file_format == "m4a":
@@ -438,26 +452,9 @@ class CommonSeparator:
             except Exception as e:
                 raise AudioExportError(f"Failed to prepare output directory for {stem_path}: {e}", path=stem_path, backend="soundfile") from e
 
-        # Determine the subtype based on the input audio's bit depth
-        output_subtype = None
-        if self.input_subtype:
-            output_subtype = self.input_subtype
-            self.logger.info(f"Using input subtype for output: {output_subtype}")
-        elif self.input_bit_depth:
-            # Map bit depth to subtype
-            if self.input_bit_depth == 16:
-                output_subtype = 'PCM_16'
-            elif self.input_bit_depth == 24:
-                output_subtype = 'PCM_24'
-            elif self.input_bit_depth == 32:
-                output_subtype = 'PCM_32'
-            else:
-                output_subtype = 'PCM_16'  # Default fallback
-            self.logger.info(f"Using output subtype based on bit depth: {output_subtype}")
-        else:
-            # Default to PCM_16 if no bit depth info available
-            output_subtype = 'PCM_16'
-            self.logger.warning("No bit depth info available, defaulting to PCM_16")
+        file_format = stem_path.lower().split(".")[-1]
+        output_subtype = resolve_output_subtype(self.output_subtype, self.input_subtype, self.input_bit_depth, file_format)
+        self.logger.info(f"Using output subtype: {output_subtype}")
 
         # Correctly interleave stereo channels if needed
         if stem_source.ndim == 2 and stem_source.shape[1] == 2:

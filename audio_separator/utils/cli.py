@@ -41,6 +41,7 @@ def main():
     extra_models_help = "Additional models for ensembling. Requires -m for the primary model. Example: --extra_models model2.onnx model3.ckpt"
     output_format_help = "Output format for separated files, any common format (default: %(default)s). Example: --output_format=MP3"
     output_bitrate_help = "Output bitrate for separated files, any ffmpeg-compatible bitrate (default: %(default)s). Example: --output_bitrate=320k"
+    output_subtype_help = "Lossless WAV/FLAC subtype. AUTO follows the input where supported (default: %(default)s)."
     output_dir_help = "Directory to write output files (default: <current dir>). Example: --output_dir=/app/separated"
     model_file_dir_help = "Model files directory (default: %(default)s or AUDIO_SEPARATOR_MODEL_DIR env var if set). Example: --model_file_dir=/app/models"
     download_model_only_help = "Download a single model file only, without performing separation."
@@ -50,6 +51,9 @@ def main():
     io_params.add_argument("--extra_models", nargs="+", default=None, help=extra_models_help)
     io_params.add_argument("--output_format", default="FLAC", help=output_format_help)
     io_params.add_argument("--output_bitrate", default=None, help=output_bitrate_help)
+    io_params.add_argument(
+        "--output_subtype", choices=["AUTO", "PCM_16", "PCM_24", "PCM_32", "FLOAT"], default="AUTO", help=output_subtype_help
+    )
     io_params.add_argument("--output_dir", default=None, help=output_dir_help)
     io_params.add_argument("--model_file_dir", default="/tmp/audio-separator-models/", help=model_file_dir_help)
     io_params.add_argument("--download_model_only", action="store_true", help=download_model_only_help)
@@ -260,6 +264,7 @@ def main():
         output_dir=args.output_dir,
         output_format=args.output_format,
         output_bitrate=args.output_bitrate,
+        output_subtype=args.output_subtype,
         normalization_threshold=args.normalization,
         amplification_threshold=args.amplification,
         output_single_stem=args.single_stem,

@@ -36,6 +36,7 @@ def common_expected_args():
         "output_dir": None,
         "output_format": "FLAC",
         "output_bitrate": None,
+        "output_subtype": "AUTO",
         "normalization_threshold": 0.9,
         "amplification_threshold": 0.0,
         "output_single_stem": None,
@@ -195,6 +196,18 @@ def test_cli_output_format_argument(common_expected_args):
 
             # Assertions
             mock_separator.assert_called_once_with(**expected_args)
+
+
+def test_cli_output_subtype_argument(common_expected_args):
+    test_args = ["cli.py", "test_audio.wav", "--output_subtype=PCM_24"]
+    with patch("sys.argv", test_args):
+        with patch("audio_separator.separator.Separator") as mock_separator:
+            mock_separator.return_value.separate.return_value = ["output_file.wav"]
+            main()
+
+    expected_args = common_expected_args.copy()
+    expected_args["output_subtype"] = "PCM_24"
+    mock_separator.assert_called_once_with(**expected_args)
 
 
 # Test using normalization_threshold argument

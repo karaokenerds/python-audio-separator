@@ -13,7 +13,7 @@ import soundfile as sf
 import torch
 from pydub import AudioSegment
 
-from audio_separator.separator.audio_io import validate_audio_source
+from audio_separator.separator.audio_io import normalize_output_subtype, validate_audio_source
 from audio_separator.separator.architectures.demucs_separator import DemucsSeparator
 from audio_separator.separator.common_separator import CommonSeparator
 from audio_separator.separator.uvr_lib_v5 import spec_utils
@@ -21,6 +21,25 @@ from audio_separator.separator.exceptions import AudioExportError, BatchSeparati
 
 
 requires_ffmpeg = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFmpeg is required for pydub encoding")
+
+
+@pytest.mark.parametrize("subtype", ["AUTO", "PCM_16", "PCM_24", "PCM_32", "FLOAT"])
+def test_wav_accepts_supported_output_subtypes(subtype):
+    assert normalize_output_subtype(subtype.lower(), "WAV") == subtype
+
+
+@pytest.mark.parametrize(
+    ("subtype", "output_format", "message"),
+    [
+        ("PCM_24", "MP3", "WAV or FLAC"),
+        ("PCM_32", "FLAC", "does not support"),
+        ("FLOAT", "FLAC", "does not support"),
+        ("PCM_20", "WAV", "must be one of"),
+    ],
+)
+def test_invalid_output_subtype_combinations_fail_early(subtype, output_format, message):
+    with pytest.raises(ValueError, match=message):
+        normalize_output_subtype(subtype, output_format)
 
 
 @pytest.fixture

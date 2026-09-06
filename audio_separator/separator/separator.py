@@ -23,7 +23,7 @@ import torch
 import torch.amp.autocast_mode as autocast_mode
 import onnxruntime as ort
 from tqdm import tqdm
-from audio_separator.separator.audio_io import atomic_output_path, validate_audio_source
+from audio_separator.separator.audio_io import atomic_output_path, normalize_output_subtype, validate_audio_source
 from audio_separator.separator.ensembler import Ensembler
 from audio_separator.separator.exceptions import AudioExportError, BatchSeparationError, InvalidAudioDataError
 from audio_separator.separator.execution_policy import AUTOCAST, FP32, NATIVE_FP16
@@ -88,6 +88,7 @@ class Separator:
         use_autocast (bool): Use PyTorch autocast when the loaded model and device support it.
         use_torch_compile (bool): Compile verified repeated model blocks when supported.
         use_native_fp16 (bool): Convert a verified model to native float16 inference when supported.
+        output_subtype (str): Lossless output subtype: AUTO, PCM_16, PCM_24, PCM_32, or FLOAT.
 
     MDX Architecture Specific Attributes:
         hop_length (int): The hop length for STFT.
@@ -146,6 +147,7 @@ class Separator:
         info_only=False,
         use_torch_compile=False,
         use_native_fp16=False,
+        output_subtype="AUTO",
     ):
         """Initialize the separator."""
         if use_autocast and use_native_fp16:
@@ -202,6 +204,7 @@ class Separator:
 
         if self.output_format is None:
             self.output_format = "WAV"
+        self.output_subtype = normalize_output_subtype(output_subtype, self.output_format)
 
         self.normalization_threshold = normalization_threshold
         if normalization_threshold <= 0 or normalization_threshold > 1:
@@ -961,6 +964,7 @@ class Separator:
                 "model_data": model_data,
                 "output_format": self.output_format,
                 "output_bitrate": self.output_bitrate,
+                "output_subtype": self.output_subtype,
                 "output_dir": self.output_dir,
                 "normalization_threshold": self.normalization_threshold,
                 "amplification_threshold": self.amplification_threshold,

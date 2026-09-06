@@ -10,6 +10,40 @@ import numpy as np
 
 from audio_separator.separator.exceptions import AudioExportError, InvalidAudioDataError
 
+OUTPUT_SUBTYPES = ("AUTO", "PCM_16", "PCM_24", "PCM_32", "FLOAT")
+
+
+def normalize_output_subtype(output_subtype, output_format):
+    """Validate and normalize an explicit lossless output subtype."""
+    subtype = str(output_subtype or "AUTO").upper()
+    if subtype not in OUTPUT_SUBTYPES:
+        choices = ", ".join(OUTPUT_SUBTYPES)
+        raise ValueError(f"output_subtype must be one of: {choices}")
+
+    file_format = str(output_format or "WAV").lower()
+    if subtype != "AUTO" and file_format not in ("wav", "flac"):
+        raise ValueError("output_subtype can only be set for WAV or FLAC output")
+    if file_format == "flac" and subtype in ("PCM_32", "FLOAT"):
+        raise ValueError(f"FLAC output does not support {subtype}; use PCM_24 or WAV")
+    return subtype
+
+
+def resolve_output_subtype(requested_subtype, input_subtype, input_bit_depth, output_format):
+    """Resolve AUTO to an input-compatible subtype supported by the container."""
+    subtype = normalize_output_subtype(requested_subtype, output_format)
+    if subtype != "AUTO":
+        return subtype
+
+    file_format = str(output_format or "WAV").lower()
+    if input_subtype:
+        subtype = str(input_subtype).upper()
+    else:
+        subtype = {16: "PCM_16", 24: "PCM_24", 32: "PCM_32"}.get(input_bit_depth, "PCM_16")
+
+    if file_format == "flac" and subtype in ("PCM_32", "FLOAT", "DOUBLE"):
+        return "PCM_24"
+    return subtype
+
 
 def validate_audio_source(stem_source):
     """Return audio as an array after validating mono/stereo frame layout."""
