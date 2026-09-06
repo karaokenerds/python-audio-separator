@@ -95,6 +95,25 @@ If the GPU isn't being detected, make sure your docker runtime environment is pa
 
 ### 🎮 Nvidia GPU with CUDA or 🧪 Google Colab
 
+To select a particular GPU on a multi-GPU machine, use `--cuda_device_index`:
+
+```sh
+audio-separator input.wav --cuda_device_index 1
+```
+
+The equivalent Python option is `Separator(cuda_device_index=1)`. The index is
+zero-based and relative to the devices visible through `CUDA_VISIBLE_DEVICES`.
+It configures both PyTorch (`cuda:1` in this example) and ONNX Runtime's CUDA
+provider (`device_id=1`). The provider must be installed for ONNX acceleration;
+selecting an index does not install or enable an unavailable ONNX provider.
+
+An explicitly selected index must be a non-negative integer within the available
+CUDA device range. An unavailable CUDA backend or out-of-range index raises
+`ValueError` rather than silently selecting another backend. Omit the option to
+retain automatic device selection. Existing positional Python arguments retain
+their order; this optional argument is appended to the constructor.
+
+
 **Supported CUDA Versions:** 11.8 and 12.2
 
 💬 If successfully configured, you should see this log message when running `audio-separator --env_info`:

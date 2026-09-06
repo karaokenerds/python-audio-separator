@@ -489,9 +489,10 @@ class CommonSeparator:
         if self.torch_device == torch.device("mps"):
             self.logger.debug("Clearing MPS cache...")
             torch.mps.empty_cache()
-        if self.torch_device == torch.device("cuda"):
+        if self.torch_device.type == "cuda":
             self.logger.debug("Clearing CUDA cache...")
-            torch.cuda.empty_cache()
+            with torch.cuda.device(self.torch_device):
+                torch.cuda.empty_cache()
 
     def clear_file_specific_paths(self):
         """

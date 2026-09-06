@@ -91,6 +91,7 @@ def main():
     precision_params.add_argument("--use_autocast", action="store_true", help=use_autocast_help)
     precision_params.add_argument("--use_native_fp16", action="store_true", help=use_native_fp16_help)
     common_params.add_argument("--use_torch_compile", action="store_true", help=use_torch_compile_help)
+    common_params.add_argument("--cuda_device_index", type=int, default=None, help="CUDA device index for both PyTorch and ONNX Runtime (relative to CUDA_VISIBLE_DEVICES).")
     common_params.add_argument("--use_directml", action="store_true", help=use_directml_help)
     common_params.add_argument("--chunk_duration", type=float, default=None, help=chunk_duration_help)
     common_params.add_argument(
@@ -270,6 +271,7 @@ def main():
         use_native_fp16=args.use_native_fp16,
         use_torch_compile=args.use_torch_compile,
         use_directml=args.use_directml,
+        cuda_device_index=args.cuda_device_index,
         chunk_duration=args.chunk_duration,
         ensemble_algorithm=args.ensemble_algorithm,
         ensemble_weights=args.ensemble_weights,

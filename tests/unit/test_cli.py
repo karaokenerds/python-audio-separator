@@ -46,6 +46,7 @@ def common_expected_args():
         "use_native_fp16": False,
         "use_torch_compile": False,
         "use_directml": False,
+        "cuda_device_index": None,
         "chunk_duration": None,
         "ensemble_algorithm": None,
         "ensemble_weights": None,
@@ -476,3 +477,9 @@ def test_cli_list_presets(capsys):
     captured = capsys.readouterr()
     assert "vocal_balanced" in captured.out
     assert "karaoke" in captured.out
+
+
+def test_cli_passes_cuda_device_index():
+    with patch("sys.argv", ["audio-separator", "test.wav", "--cuda_device_index", "2"]), patch("audio_separator.separator.Separator") as separator_class:
+        main()
+    assert separator_class.call_args.kwargs["cuda_device_index"] == 2

@@ -33,6 +33,7 @@ def test_execution_options_are_appended_to_constructor_signature():
         "info_only",
         "use_torch_compile",
         "use_native_fp16",
+        "cuda_device_index",
     ]
     assert inspect.signature(Separator.__init__).parameters["use_torch_compile"].default is False
     assert inspect.signature(Separator.__init__).parameters["use_native_fp16"].default is False

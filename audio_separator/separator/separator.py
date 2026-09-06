@@ -54,6 +54,11 @@ STEM_NAME_MAP = {
 SUPPORTED_AUDIO_EXTENSIONS = (".wav", ".flac", ".mp3", ".ogg", ".opus", ".m4a", ".aiff", ".ac3")
 
 
+def _validate_cuda_device_index(index):
+    if index is not None and (isinstance(index, bool) or not isinstance(index, int) or index < 0):
+        raise ValueError("cuda_device_index must be a non-negative integer or None")
+
+
 def _iter_directory_audio_files(directory):
     for root, _dirs, files in os.walk(directory):
         for filename in files:
@@ -84,6 +89,7 @@ class Separator:
         output_single_stem (str): Option to output a single stem.
         invert_using_spec (bool): Flag to invert using spectrogram.
         sample_rate (int): The sample rate of the audio.
+        cuda_device_index (int or None): Optional visible CUDA index used by PyTorch and ONNX Runtime.
         use_soundfile (bool): Use soundfile for audio writing, can solve OOM issues.
         use_autocast (bool): Use PyTorch autocast when the loaded model and device support it.
         use_torch_compile (bool): Compile verified repeated model blocks when supported.
@@ -146,8 +152,11 @@ class Separator:
         info_only=False,
         use_torch_compile=False,
         use_native_fp16=False,
+        cuda_device_index=None,
     ):
         """Initialize the separator."""
+        _validate_cuda_device_index(cuda_device_index)
+        self.cuda_device_index = cuda_device_index
         if use_autocast and use_native_fp16:
             raise ValueError("use_autocast and use_native_fp16 are mutually exclusive precision modes.")
 
@@ -434,6 +443,8 @@ class Separator:
         """
         This method sets up the PyTorch and/or ONNX Runtime inferencing device, using GPU hardware acceleration if available.
         """
+        if self.cuda_device_index is not None and not torch.cuda.is_available():
+            raise ValueError("cuda_device_index was specified, but CUDA is not available")
         hardware_acceleration_enabled = False
         ort_providers = ort.get_available_providers()
         has_torch_dml_installed = self.get_package_distribution("torch_directml")
@@ -465,15 +476,19 @@ class Separator:
                     "Pass use_directml=True (or --use_directml on the CLI) to enable experimental DirectML acceleration."
                 )
 
-    def configure_cuda(self, ort_providers):
+    def configure_cuda(self, ort_providers, device_index=None):
         """
         This method configures the CUDA device for PyTorch and ONNX Runtime, if available.
         """
-        self.logger.info("CUDA is available in Torch, setting Torch device to CUDA")
-        self.torch_device = torch.device("cuda")
+        index = self.cuda_device_index if device_index is None else device_index
+        _validate_cuda_device_index(index)
+        if index is not None and index >= torch.cuda.device_count():
+            raise ValueError(f"cuda_device_index {index} is outside the available CUDA device range")
+        self.torch_device = torch.device("cuda" if index is None else f"cuda:{index}")
+        self.logger.info(f"CUDA is available in Torch, setting Torch device to {self.torch_device}")
         if "CUDAExecutionProvider" in ort_providers:
             self.logger.info("ONNXruntime has CUDAExecutionProvider available, enabling acceleration")
-            self.onnx_execution_provider = ["CUDAExecutionProvider"]
+            self.onnx_execution_provider = ["CUDAExecutionProvider"] if index is None else [("CUDAExecutionProvider", {"device_id": index})]
         else:
             self.logger.warning("CUDAExecutionProvider not available in ONNXruntime, so acceleration will NOT be enabled")
 

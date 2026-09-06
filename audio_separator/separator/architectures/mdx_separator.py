@@ -124,6 +124,8 @@ class MDXSeparator(CommonSeparator):
             session_providers = ort_inference_session.get_providers()
 
             requested_provider = self.onnx_execution_provider[0] if self.onnx_execution_provider else None
+            if isinstance(requested_provider, tuple):
+                requested_provider = requested_provider[0]
             if requested_provider and requested_provider not in session_providers:
                 self.logger.warning(
                     f"ONNX Runtime could not activate requested provider {requested_provider}; "
