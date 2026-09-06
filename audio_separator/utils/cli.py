@@ -134,7 +134,7 @@ def main():
     vr_params.add_argument("--vr_enable_post_process", action="store_true", help=vr_enable_post_process_help)
     vr_params.add_argument("--vr_post_process_threshold", type=float, default=0.2, help=vr_post_process_threshold_help)
 
-    demucs_segment_size_help = "Size of segments into which the audio is split, 1-100. Higher = slower but better quality (default: %(default)s). Example: --demucs_segment_size=256"
+    demucs_segment_size_help = "Segment length in seconds, 1-100. Smaller values use less memory. Use 'Default' to use the model's configured segment length (default: %(default)s). Example: --demucs_segment_size=40"
     demucs_shifts_help = "Number of predictions with random shifts, higher = slower but better quality (default: %(default)s). Example: --demucs_shifts=4"
     demucs_overlap_help = "Overlap between prediction windows, 0.001-0.999. Higher = slower but better quality (default: %(default)s). Example: --demucs_overlap=0.25"
     demucs_segments_enabled_help = "Enable segment-wise processing (default: %(default)s). Example: --demucs_segments_enabled=False"

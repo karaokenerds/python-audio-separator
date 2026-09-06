@@ -1,6 +1,7 @@
 import json
 import pytest
 import logging
+from pathlib import Path
 from audio_separator.utils.cli import main
 import subprocess
 import importlib.metadata
@@ -74,6 +75,21 @@ def test_cli_no_args(capsys):
     assert exc_info.value.code == 1
     captured = capsys.readouterr()
     assert "Separate audio file into different stems." in captured.out
+
+
+def test_cli_demucs_segment_size_help(capsys):
+    with patch("sys.argv", ["cli.py", "--help"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+
+    assert exc_info.value.code == 0
+    help_output = capsys.readouterr().out
+    assert "Use 'Default' to use the model's configured segment length" in help_output
+    assert "Example: --demucs_segment_size=40" in help_output
+
+    readme = Path(__file__).parents[2].joinpath("README.md").read_text()
+    assert "Use 'Default' to use the model's configured segment length" in readme
+    assert "Example: --demucs_segment_size=40" in readme
 
 
 # Test with multiple filename arguments
