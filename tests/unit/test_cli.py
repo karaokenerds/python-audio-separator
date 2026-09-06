@@ -87,7 +87,7 @@ def test_cli_demucs_segment_size_help(capsys):
     assert "Use 'Default' to use the model's configured segment length" in help_output
     assert "Example: --demucs_segment_size=40" in help_output
 
-    readme = Path(__file__).parents[2].joinpath("README.md").read_text()
+    readme = Path(__file__).parents[2].joinpath("README.md").read_text(encoding="utf-8")
     assert "Use 'Default' to use the model's configured segment length" in readme
     assert "Example: --demucs_segment_size=40" in readme
 
