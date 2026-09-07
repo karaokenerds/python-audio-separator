@@ -7,6 +7,7 @@ import stat
 import tempfile
 
 import numpy as np
+import soundfile as sf
 
 from audio_separator.separator.exceptions import AudioExportError, InvalidAudioDataError
 
@@ -40,9 +41,13 @@ def resolve_output_subtype(requested_subtype, input_subtype, input_bit_depth, ou
     else:
         subtype = {16: "PCM_16", 24: "PCM_24", 32: "PCM_32"}.get(input_bit_depth, "PCM_16")
 
-    if file_format == "flac" and subtype in ("PCM_32", "FLOAT", "DOUBLE"):
-        return "PCM_24"
-    return subtype
+    if sf.check_format(file_format.upper(), subtype):
+        return subtype
+
+    fallback = {16: "PCM_16", 24: "PCM_24", 32: "PCM_32"}.get(input_bit_depth, "PCM_16")
+    if file_format == "flac" and fallback == "PCM_32":
+        fallback = "PCM_24"
+    return fallback
 
 
 def validate_audio_source(stem_source):

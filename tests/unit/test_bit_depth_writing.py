@@ -298,6 +298,19 @@ def test_explicit_24bit_output_preserves_model_precision(temp_dir, mock_separato
     np.testing.assert_allclose(decoded, samples, atol=1 / 2**23)
 
 
+def test_explicit_16bit_output_overrides_24bit_input_metadata(temp_dir, mock_separator_config):
+    mock_separator_config["output_subtype"] = "PCM_16"
+    separator = CommonSeparator(mock_separator_config)
+    separator.input_bit_depth = 24
+    separator.input_subtype = "PCM_24"
+
+    samples = np.array([[0.25, -0.25], [0.5, -0.5]], dtype=np.float32)
+    separator.write_audio_pydub("explicit-16bit.wav", samples)
+
+    output_path = os.path.join(temp_dir, "explicit-16bit.wav")
+    assert sf.info(output_path).subtype == "PCM_16"
+
+
 if __name__ == "__main__":
     # Run tests with pytest
     pytest.main([__file__, "-v", "-s"])

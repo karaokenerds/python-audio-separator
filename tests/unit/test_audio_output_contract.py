@@ -13,7 +13,7 @@ import soundfile as sf
 import torch
 from pydub import AudioSegment
 
-from audio_separator.separator.audio_io import normalize_output_subtype, validate_audio_source
+from audio_separator.separator.audio_io import normalize_output_subtype, resolve_output_subtype, validate_audio_source
 from audio_separator.separator.architectures.demucs_separator import DemucsSeparator
 from audio_separator.separator.common_separator import CommonSeparator
 from audio_separator.separator.uvr_lib_v5 import spec_utils
@@ -40,6 +40,11 @@ def test_wav_accepts_supported_output_subtypes(subtype):
 def test_invalid_output_subtype_combinations_fail_early(subtype, output_format, message):
     with pytest.raises(ValueError, match=message):
         normalize_output_subtype(subtype, output_format)
+
+
+@pytest.mark.parametrize(("output_format", "expected"), [("wav", "PCM_24"), ("flac", "PCM_24")])
+def test_auto_vorbis_falls_back_to_container_compatible_pcm(output_format, expected):
+    assert resolve_output_subtype("AUTO", "VORBIS", 24, output_format) == expected
 
 
 @pytest.fixture

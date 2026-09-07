@@ -371,8 +371,7 @@ class CommonSeparator:
             self.logger.debug(f"Exported audio file successfully to {stem_path} with subtype {output_subtype}")
             return
 
-        # Determine bit depth for output (use input bit depth if available, otherwise default to 16)
-        output_bit_depth = self.input_bit_depth if self.input_bit_depth is not None else 16
+        output_bit_depth = {"PCM_16": 16, "PCM_24": 24, "PCM_32": 32}.get(output_subtype, 16)
         self.logger.info(f"Writing output with {output_bit_depth}-bit depth")
 
         # For pydub, we always convert to int16 for the AudioSegment creation
