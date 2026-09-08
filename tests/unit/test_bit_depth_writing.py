@@ -298,6 +298,7 @@ def test_explicit_24bit_output_preserves_model_precision(temp_dir, mock_separato
     np.testing.assert_allclose(decoded, samples, atol=1 / 2**23)
 
 
+@requires_ffmpeg
 def test_explicit_16bit_output_overrides_24bit_input_metadata(temp_dir, mock_separator_config):
     mock_separator_config["output_subtype"] = "PCM_16"
     separator = CommonSeparator(mock_separator_config)
