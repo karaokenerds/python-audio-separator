@@ -55,11 +55,13 @@ SUPPORTED_AUDIO_EXTENSIONS = (".wav", ".flac", ".mp3", ".ogg", ".opus", ".m4a", 
 
 
 def _validate_cuda_device_index(index):
+    """Reject explicit CUDA indices unless they are non-negative integers; allow None for automatic selection."""
     if index is not None and (isinstance(index, bool) or not isinstance(index, int) or index < 0):
         raise ValueError("cuda_device_index must be a non-negative integer or None")
 
 
 def _iter_directory_audio_files(directory):
+    """Yield supported audio paths recursively, matching filename extensions case-insensitively."""
     for root, _dirs, files in os.walk(directory):
         for filename in files:
             if filename.lower().endswith(SUPPORTED_AUDIO_EXTENSIONS):

@@ -29,6 +29,7 @@ def mock_distribution():
 # Common fixture for expected arguments
 @pytest.fixture
 def common_expected_args():
+    """Return the default Separator keyword arguments expected from CLI invocations."""
     return {
         "log_formatter": mock.ANY,
         "log_level": logging.INFO,
@@ -469,6 +470,7 @@ def test_cli_ensemble_preset(common_expected_args):
 
 # Test --list_presets exits cleanly
 def test_cli_list_presets(capsys):
+    """Ensure listing ensemble presets prints their names and exits successfully."""
     test_args = ["cli.py", "--list_presets"]
     with patch("sys.argv", test_args):
         with pytest.raises(SystemExit) as exc_info:
@@ -480,6 +482,7 @@ def test_cli_list_presets(capsys):
 
 
 def test_cli_passes_cuda_device_index():
+    """Ensure the CLI forwards the selected CUDA index to the Separator constructor."""
     with patch("sys.argv", ["audio-separator", "test.wav", "--cuda_device_index", "2"]), patch("audio_separator.separator.Separator") as separator_class:
         main()
     assert separator_class.call_args.kwargs["cuda_device_index"] == 2

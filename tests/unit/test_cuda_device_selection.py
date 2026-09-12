@@ -10,6 +10,7 @@ from audio_separator.separator import Separator
 
 @pytest.mark.parametrize("index", [0, 1, 3])
 def test_selected_device_reaches_torch_and_onnx(index):
+    """Keep PyTorch and ONNX Runtime on the same explicitly selected CUDA device."""
     separator = Separator(info_only=True)
     with patch("torch.cuda.device_count", return_value=4):
         separator.configure_cuda(["CUDAExecutionProvider"], device_index=index)
@@ -19,11 +20,13 @@ def test_selected_device_reaches_torch_and_onnx(index):
 
 @pytest.mark.parametrize("index", [-1, True, 1.5, "1"])
 def test_invalid_index_rejected_before_initialization(index):
+    """Reject negative, boolean, and non-integer device indices before initializing the separator."""
     with pytest.raises(ValueError, match="cuda_device_index"):
         Separator(info_only=True, cuda_device_index=index)
 
 
 def test_constructor_selection_is_used_by_device_setup():
+    """Apply the constructor CUDA selection when discovering available inference devices."""
     separator = Separator(info_only=True, cuda_device_index=2)
     with (
         patch("torch.cuda.is_available", return_value=True),
@@ -36,12 +39,14 @@ def test_constructor_selection_is_used_by_device_setup():
 
 
 def test_explicit_index_cannot_silently_fall_back_to_cpu():
+    """Fail when an explicit CUDA device is requested but CUDA is unavailable."""
     separator = Separator(info_only=True, cuda_device_index=0)
     with patch("torch.cuda.is_available", return_value=False), pytest.raises(ValueError, match="CUDA"):
         separator.setup_torch_device(SimpleNamespace(processor="test"))
 
 
 def test_out_of_range_selection_does_not_mutate_devices():
+    """Preserve existing device state when the requested CUDA index exceeds the device count."""
     separator = Separator(info_only=True)
     separator.torch_device = "unchanged"
     with patch("torch.cuda.device_count", return_value=2), pytest.raises(ValueError, match="cuda_device_index"):
@@ -50,6 +55,7 @@ def test_out_of_range_selection_does_not_mutate_devices():
 
 
 def test_default_selection_keeps_existing_provider_configuration():
+    """Retain automatic CUDA placement and provider names when no index is requested."""
     separator = Separator(info_only=True)
     separator.configure_cuda(["CUDAExecutionProvider"])
     assert str(separator.torch_device) == "cuda"
@@ -58,6 +64,7 @@ def test_default_selection_keeps_existing_provider_configuration():
 
 @pytest.mark.parametrize("active_providers, warns", [(["CUDAExecutionProvider"], False), (["CPUExecutionProvider"], True)])
 def test_mdx_checks_provider_name_and_preserves_device_options(active_providers, warns):
+    """Preserve ONNX device options and warn only when the active session lacks the CUDA provider."""
     from unittest.mock import Mock
     from audio_separator.separator.architectures.mdx_separator import MDXSeparator
 
@@ -76,6 +83,7 @@ def test_mdx_checks_provider_name_and_preserves_device_options(active_providers,
 
 @pytest.mark.parametrize("device_name", ["cuda", "cuda:0", "cuda:2"])
 def test_cache_cleanup_uses_selected_cuda_context(device_name):
+    """Release cached memory within the configured CUDA device context."""
     from unittest.mock import Mock
     import torch
     from audio_separator.separator.common_separator import CommonSeparator
