@@ -66,6 +66,7 @@ def test_cli_version_subprocess():
 
 # Test the CLI with no arguments
 def test_cli_no_args(capsys):
+    """Print usage and fail before importing inference backends when no input is supplied."""
     test_args = ["cli.py"]
 
     with patch("sys.argv", test_args), patch.dict("sys.modules", {"audio_separator.separator": None}):
@@ -78,6 +79,7 @@ def test_cli_no_args(capsys):
 
 
 def test_cli_demucs_segment_size_help(capsys):
+    """Keep CLI help and README examples aligned on Demucs segment seconds and the Default sentinel."""
     with patch("sys.argv", ["cli.py", "--help"]):
         with pytest.raises(SystemExit) as exc_info:
             main()
@@ -94,6 +96,7 @@ def test_cli_demucs_segment_size_help(capsys):
 
 # Test with multiple filename arguments
 def test_cli_multiple_filenames():
+    """Forward every input filename in one separation call and log the resulting outputs."""
     test_args = ["cli.py", "test1.mp3", "test2.mp3"]
 
     # Mock the open function to prevent actual file operations
