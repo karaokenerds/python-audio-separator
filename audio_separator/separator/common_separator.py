@@ -64,6 +64,7 @@ class CommonSeparator:
 
     def __init__(self, config):
 
+        """Initialize shared model, device, and output settings, validating the requested lossless subtype."""
         self.logger: Logger = config.get("logger")
         self.log_level: int = config.get("log_level")
 

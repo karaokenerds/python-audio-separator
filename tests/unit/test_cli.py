@@ -29,6 +29,7 @@ def mock_distribution():
 # Common fixture for expected arguments
 @pytest.fixture
 def common_expected_args():
+    """Return the default Separator keyword arguments expected from CLI invocations."""
     return {
         "log_formatter": mock.ANY,
         "log_level": logging.INFO,
@@ -183,6 +184,7 @@ def test_cli_output_dir_argument(common_expected_args):
 
 # Test using output format argument
 def test_cli_output_format_argument(common_expected_args):
+    """Forward an explicit output container while preserving the other CLI defaults."""
     test_args = ["cli.py", "test_audio.mp3", "--output_format=MP3"]
     with patch("sys.argv", test_args):
         with patch("audio_separator.separator.Separator") as mock_separator:
@@ -199,6 +201,7 @@ def test_cli_output_format_argument(common_expected_args):
 
 
 def test_cli_output_subtype_argument(common_expected_args):
+    """Forward the requested lossless subtype to the Separator constructor."""
     test_args = ["cli.py", "test_audio.wav", "--output_subtype=PCM_24"]
     with patch("sys.argv", test_args):
         with patch("audio_separator.separator.Separator") as mock_separator:
@@ -212,6 +215,7 @@ def test_cli_output_subtype_argument(common_expected_args):
 
 # Test using normalization_threshold argument
 def test_cli_normalization_threshold_argument(common_expected_args):
+    """Forward the CLI normalization threshold without changing other separator options."""
     test_args = ["cli.py", "test_audio.mp3", "--normalization=0.75"]
     with patch("sys.argv", test_args):
         with patch("audio_separator.separator.Separator") as mock_separator:

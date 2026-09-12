@@ -25,6 +25,7 @@ requires_ffmpeg = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFm
 
 @pytest.mark.parametrize("subtype", ["AUTO", "PCM_16", "PCM_24", "PCM_32", "FLOAT"])
 def test_wav_accepts_supported_output_subtypes(subtype):
+    """Accept supported WAV subtypes case-insensitively and normalize their spelling."""
     assert normalize_output_subtype(subtype.lower(), "WAV") == subtype
 
 
@@ -38,17 +39,20 @@ def test_wav_accepts_supported_output_subtypes(subtype):
     ],
 )
 def test_invalid_output_subtype_combinations_fail_early(subtype, output_format, message):
+    """Reject unknown subtypes and incompatible container/subtype pairs before exporting audio."""
     with pytest.raises(ValueError, match=message):
         normalize_output_subtype(subtype, output_format)
 
 
 @pytest.mark.parametrize(("output_format", "expected"), [("wav", "PCM_24"), ("flac", "PCM_24")])
 def test_auto_vorbis_falls_back_to_container_compatible_pcm(output_format, expected):
+    """Choose compatible PCM output when AUTO encounters a VORBIS input subtype."""
     assert resolve_output_subtype("AUTO", "VORBIS", 24, output_format) == expected
 
 
 @pytest.fixture
 def common_separator(tmp_path):
+    """Build a shared separator with mocked devices and a temporary WAV output directory."""
     config = {
         "logger": Mock(),
         "log_level": 20,

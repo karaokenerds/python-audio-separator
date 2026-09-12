@@ -4,6 +4,7 @@ from audio_separator.separator import Separator
 
 
 def test_execution_options_are_appended_to_constructor_signature():
+    """Keep new execution options after legacy parameters to preserve positional API calls."""
     parameters = list(inspect.signature(Separator.__init__).parameters)
 
     assert parameters == [
